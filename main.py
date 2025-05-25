@@ -1,28 +1,24 @@
-from fastapi import FastAPI, Request
-from fastapi.middleware.cors import CORSMiddleware
 import json
-import os
+from fastapi import FastAPI, Query
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
 
-# Enable CORS for all origins (allow GET requests from anywhere)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  # allow all origins
     allow_methods=["GET"],
     allow_headers=["*"],
 )
 
-# Load the student marks once when the app starts
-with open("students.json") as f:
-    marks_data = json.load(f)
+# Load JSON data once at startup
+with open("students.json", "r") as f:
+    data = json.load(f)
+
+# Convert list of dicts to a dict for quick lookup
+marks_db = {item["name"]: item["marks"] for item in data}
 
 @app.get("/api")
-async def get_marks(request: Request):
-    # Get all 'name' query parameters, e.g. ?name=Alice&name=Bob
-    names = request.query_params.getlist("name")
-    
-    # Prepare marks in order of requested names, use None if name not found
-    marks = [marks_data.get(name, None) for name in names]
-
-    return {"marks": marks}
+def get_marks(name: list[str] = Query(...)):
+    result = [marks_db.get(n, None) for n in name]
+    return {"marks": result}
